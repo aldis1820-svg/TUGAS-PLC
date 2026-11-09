@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GTA San Andreas - 3D Realistic Daylight Traffic</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Impact&family=Montserrat:wght@700;900&display=swap');
+
+        :root {
+            --gta-green: #2bb673;
+            --gta-yellow: #f8c300;
+            --gta-red: #e74c3c;
+            --gta-panel-bg: rgba(0, 0, 0, 0.85);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Impact', 'Montserrat', sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: #87ceeb;
+            color: #fff;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #webgl-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Top HUD GTA SA */
+        .gta-hud-top {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .clock-display { font-size: 2.2rem; color: var(--gta-yellow); text-shadow: 3px 3px 0 #000; }
+        .money-display { font-size: 2.5rem; color: var(--gta-green); text-shadow: 3px 3px 0 #000; }
+        .wanted-level { color: var(--gta-yellow); font-size: 1.6rem; letter-spacing: 4px; text-shadow: 2px 2px 0 #000; }
+
+        .header-title {
+            position: absolute;
+            top: 20px;
+            left: 30px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            color: var(--gta-yellow);
+            text-shadow: 3px 3px 0 #000, -2px -2px 0 #000;
+            text-transform: uppercase;
+        }
+
+        .subtitle { font-size: 0.9rem; color: #fff; text-shadow: 2px 2px 0 #000; text-transform: uppercase; }
+
+        /* Panel Config HUD */
+        .gta-panel {
+            position: absolute;
+            bottom: 25px;
+            right: 25px;
+            width: 320px;
+            background: var(--gta-panel-bg);
+            border: 3px solid var(--gta-green);
+            border-radius: 8px;
+            padding: 18px;
+            box-shadow: 8px 8px 0 #000;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+        }
+
+        .panel-header {
+            font-size: 1.2rem;
+            color: var(--gta-yellow);
+            text-shadow: 2px 2px 0 #000;
+            border-bottom: 2px solid var(--gta-green);
+            padding-bottom: 6px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .config-row {
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .config-row label {
+            font-size: 0.9rem;
+            color: #fff;
+            text-shadow: 1px 1px 0 #000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid #fff;
+        }
+
+        .config-row input {
+            width: 70px;
+            background: #000;
+            border: 2px solid var(--gta-yellow);
+            color: var(--gta-green);
+            padding: 4px 8px;
+            font-size: 1rem;
+            text-align: center;
+            outline: none;
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        .gta-btn {
+            width: 100%;
+            background: var(--gta-green);
+            color: #000;
+            border: 2px solid #fff;
+            padding: 10px;
+            font-size: 1rem;
+            font-weight: 900;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 4px 4px 0 #000;
+            transition: transform 0.1s, background 0.2s;
+            margin-top: 8px;
+        }
+
+        .gta-btn:hover { background: var(--gta-yellow); transform: translate(-2px, -2px); box-shadow: 6px 6px 0 #000; }
+        .gta-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #000; }
+
+        .status-banner {
+            margin-top: 12px;
+            background: #000;
+            border: 2px dashed var(--gta-yellow);
+            padding: 8px;
+            text-align: center;
+            color: var(--gta-yellow);
+            font-size: 0.8rem;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        /* 3D Floating Timer Display */
+        .hud-3d-timer {
+            position: absolute;
+            bottom: 25px;
+            left: 25px;
+            z-index: 10;
+            background: rgba(0,0,0,0.85);
+            border: 3px solid var(--gta-yellow);
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 5px 5px 0 #000;
+            pointer-events: none;
+        }
+
+        .hud-3d-timer .timer-val {
+            font-size: 3rem;
+            color: var(--gta-yellow);
+            text-shadow: 3px 3px 0 #000;
+            text-align: center;
+        }
+
+        .hud-3d-timer .timer-lbl {
+            font-size: 0.8rem;
+            color: var(--gta-green);
+            text-transform: uppercase;
+        }
+    </style>
+    <!-- Three.js & OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <div id="webgl-container"></div>
+
+    <div class="header-title">
+        <h1>SAN ANDREAS 3D DAYLIGHT</h1>
+        <div class="subtitle">REALISTIC VEHICLE & SIGNAL SIMULATOR</div>
+    </div>
+
+    <div class="gta-hud-top">
+        <div class="clock-display" id="gtaClock">12:00</div>
+        <div class="money-display">$999,999</div>
+        <div class="wanted-level">★ ★ ★ ★ ☆</div>
+    </div>
+
+    <div class="hud-3d-timer">
+        <div class="timer-lbl">SIGNAL COUNTDOWN</div>
+        <div class="timer-val" id="countdownTimer">00</div>
+    </div>
+
+    <div class="gta-panel">
+        <div class="panel-header">STATISTICS & 3D CONFIG</div>
+
+        <div class="config-row">
+            <label>
+                <span class="color-dot" style="background: var(--gta-red);"></span>
+                RED LIGHT (SEC):
+            </label>
+            <input type="number" id="cfgRed" value="6" min="1" max="60">
+        </div>
+
+        <div class="config-row">
+            <label>
+                <span class="color-dot" style="background: var(--gta-yellow);"></span>
+                YELLOW LIGHT (SEC):
+            </label>
+            <input type="number" id="cfgYellow" value="2" min="1" max="10">
+        </div>
+
+        <div class="config-row">
+            <label>
+                <span class="color-dot" style="background: var(--gta-green);"></span>
+                GREEN LIGHT (SEC):
+            </label>
+            <input type="number" id="cfgGreen" value="6" min="1" max="60">
+        </div>
+
+        <button class="gta-btn" onclick="applyGtaConfig()">[ APPLY CONFIG ]</button>
+        <button class="gta-btn" style="background: var(--gta-yellow);" onclick="forceState('GREEN')">OVERRIDE GREEN</button>
+        <button class="gta-btn" style="background: var(--gta-red); color:#fff;" onclick="forceState('RED')">OVERRIDE RED</button>
+
+        <div class="status-banner" id="gtaStatus">
+            MISSION: MAINTAIN 3D TRAFFIC FLOW
+        </div>
+    </div>
+
+    <script>
+        // Setup Scene Three.js (Daylight Theme)
+        const container = document.getElementById('webgl-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87ceeb); // Warna langit biru cerah
+        scene.fog = new THREE.FogExp2(0x87ceeb, 0.008);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(45, 30, 50);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.maxPolarAngle = Math.PI / 2 - 0.05;
+
+        // Pencahayaan Siang Hari (Bright Daylight Setup)
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        sunLight.position.set(50, 80, 40);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        sunLight.shadow.camera.near = 0.5;
+        sunLight.shadow.camera.far = 200;
+        const d = 60;
+        sunLight.shadow.camera.left = -d;
+        sunLight.shadow.camera.right = d;
+        sunLight.shadow.camera.top = d;
+        sunLight.shadow.camera.bottom = -d;
+        scene.add(sunLight);
+
+        // Rumput / Ground
+        const grassGeo = new THREE.PlaneGeometry(300, 300);
+        const grassMat = new THREE.MeshStandardMaterial({ color: 0x557a2b, roughness: 0.9 });
+        const grass = new THREE.Mesh(grassGeo, grassMat);
+        grass.rotation.x = -Math.PI / 2;
+        grass.receiveShadow = true;
+        scene.add(grass);
+
+        // Jalan Raya 3D (Asphalt)
+        const roadMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.6 });
+        const roadH = new THREE.Mesh(new THREE.PlaneGeometry(300, 18), roadMat);
+        roadH.rotation.x = -Math.PI / 2;
+        roadH.position.y = 0.02;
+        roadH.receiveShadow = true;
+        scene.add(roadH);
+
+        const roadV = new THREE.Mesh(new THREE.PlaneGeometry(18, 300), roadMat);
+        roadV.rotation.x = -Math.PI / 2;
+        roadV.position.y = 0.02;
+        roadV.receiveShadow = true;
+        scene.add(roadV);
+
+        // Garis-Garis Jalan (White Lines)
+        const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const lineH = new THREE.Mesh(new THREE.PlaneGeometry(300, 0.4), lineMat);
+        lineH.rotation.x = -Math.PI / 2;
+        lineH.position.y = 0.03;
+        scene.add(lineH);
+
+        const lineV = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 300), lineMat);
+        lineV.rotation.x = -Math.PI / 2;
+        lineV.position.y = 0.03;
+        scene.add(lineV);
+
+        // Tiang Lampu Lalu Lintas 3D
+        function createTrafficLightPole(x, z, rotY) {
+            const group = new THREE.Group();
+            
+            const poleGeo = new THREE.CylinderGeometry(0.25, 0.3, 9);
+            const poleMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8 });
+            const pole = new THREE.Mesh(poleGeo, poleMat);
+            pole.position.y = 4.5;
+            pole.castShadow = true;
+            group.add(pole);
+
+            const boxGeo = new THREE.BoxGeometry(1.2, 3.6, 1.2);
+            const boxMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+            const box = new THREE.Mesh(boxGeo, boxMat);
+            box.position.y = 7.5;
+            box.castShadow = true;
+            group.add(box);
+
+            const lampGeo = new THREE.SphereGeometry(0.45, 16, 16);
+            
+            const redMat = new THREE.MeshStandardMaterial({ color: 0x330000, roughness: 0.2 });
+            const redLamp = new THREE.Mesh(lampGeo, redMat);
+            redLamp.position.set(0, 8.5, 0.6);
+            group.add(redLamp);
+
+            const yellowMat = new THREE.MeshStandardMaterial({ color: 0x333300, roughness: 0.2 });
+            const yellowLamp = new THREE.Mesh(lampGeo, yellowMat);
+            yellowLamp.position.set(0, 7.5, 0.6);
+            group.add(yellowLamp);
+
+            const greenMat = new THREE.MeshStandardMaterial({ color: 0x003300, roughness: 0.2 });
+            const greenLamp = new THREE.Mesh(lampGeo, greenMat);
+            greenLamp.position.set(0, 6.5, 0.6);
+            group.add(greenLamp);
+
+            group.position.set(x, 0, z);
+            group.rotation.y = rotY;
+            scene.add(group);
+
+            return { redLamp, yellowLamp, greenLamp };
+        }
+
+        const pole1 = createTrafficLightPole(-11, -11, 0);
+        const pole2 = createTrafficLightPole(11, 11, Math.PI);
+
+        // BUILDER MOBIL REALISTIS 3D (DETAILED CAR CREATOR)
+        function createRealisticCar(colorHex) {
+            const carGroup = new THREE.Group();
+
+            // Body Utama (Metallic Paint)
+            const bodyMat = new THREE.MeshStandardMaterial({ color: colorHex, metalness: 0.6, roughness: 0.2 });
+            
+            const lowerBodyGeo = new THREE.BoxGeometry(2.2, 0.7, 4.6);
+            const lowerBody = new THREE.Mesh(lowerBodyGeo, bodyMat);
+            lowerBody.position.y = 0.65;
+            lowerBody.castShadow = true;
+            carGroup.add(lowerBody);
+
+            // Kabin / Atap / Kaca Transparan
+            const cabinGeo = new THREE.BoxGeometry(1.8, 0.65, 2.4);
+            const glassMat = new THREE.MeshStandardMaterial({ color: 0x111122, roughness: 0.1, metalness: 0.9, transparent: true, opacity: 0.85 });
+            const cabin = new THREE.Mesh(cabinGeo, glassMat);
+            cabin.position.set(0, 1.25, -0.2);
+            cabin.castShadow = true;
+            carGroup.add(cabin);
+
+            // Lampu Depan & Belakang Realistis
+            const headLightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const hl1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, 0.1), headLightMat);
+            hl1.position.set(-0.7, 0.65, 2.31);
+            const hl2 = hl1.clone();
+            hl2.position.set(0.7, 0.65, 2.31);
+            carGroup.add(hl1);
+            carGroup.add(hl2);
+
+            const tailLightMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            const tl1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, 0.1), tailLightMat);
+            tl1.position.set(-0.7, 0.65, -2.31);
+            const tl2 = tl1.clone();
+            tl2.position.set(0.7, 0.65, -2.31);
+            carGroup.add(tl1);
+            carGroup.add(tl2);
+
+            // 4 Roda 3D Berputar (3D Wheels)
+            const wheelGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.35, 16);
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
+            const rimMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.8 });
+
+            const wheels = [];
+            const wheelPositions = [
+                [-1.1, 0.38, 1.4],  // Depan Kiri
+                [1.1, 0.38, 1.4],   // Depan Kanan
+                [-1.1, 0.38, -1.4], // Belakang Kiri
+                [1.1, 0.38, -1.4]   // Belakang Kanan
+            ];
+
+            wheelPositions.forEach(pos => {
+                const wGroup = new THREE.Group();
+                const tyre = new THREE.Mesh(wheelGeo, wheelMat);
+                tyre.rotation.z = Math.PI / 2;
+                tyre.castShadow = true;
+                wGroup.add(tyre);
+
+                // Velg / Rim
+                const rim = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.36, 0.36), rimMat);
+                wGroup.add(rim);
+
+                wGroup.position.set(...pos);
+                carGroup.add(wGroup);
+                wheels.push(wGroup);
+            });
+
+            return { carGroup, wheels };
+        }
+
+        // MANAGEMENT TRAFFIC MULTI-MOBIL 3D
+        const cars = [];
+        const carColors = [0x0055ff, 0x2bb673, 0xf8c300, 0xe74c3c, 0x9b59b6];
+
+        function spawnCar(colorHex, x, z, dirX, dirZ, stopPos) {
+            const { carGroup, wheels } = createRealisticCar(colorHex);
+            
+            carGroup.position.set(x, 0, z);
+            if(dirX !== 0) carGroup.rotation.y = dirX > 0 ? Math.PI / 2 : -Math.PI / 2;
+            if(dirZ !== 0) carGroup.rotation.y = dirZ > 0 ? 0 : Math.PI;
+
+            scene.add(carGroup);
+
+            cars.push({
+                mesh: carGroup,
+                wheels: wheels,
+                startX: x, startZ: z,
+                dirX: dirX, dirZ: dirZ,
+                speed: 0.28 + Math.random() * 0.12,
+                stopPos: stopPos
+            });
+        }
+
+        // Spawn Banyak Mobil
+        spawnCar(carColors[0], -50, -4, 1, 0, -12);
+        spawnCar(carColors[1], -80, -4, 1, 0, -20);
+        spawnCar(carColors[2], -110, -4, 1, 0, -28);
+
+        spawnCar(carColors[3], 4, -50, 0, 1, -12);
+        spawnCar(carColors[4], 4, -80, 0, 1, -20);
+        spawnCar(carColors[0], 4, -110, 0, 1, -28);
+
+        // LOGIKA KONTROL TIMING LAMPU
+        let config = { red: 6, yellow: 2, green: 6 };
+        let currentPhase = 0; // 0: Green (H), 1: Yellow, 2: Red (V Green)
+        let timeLeft = 0;
+        let timerLoop = null;
+
+        function set3DLights(state) {
+            pole1.redLamp.material.color.setHex(0x330000);
+            pole1.yellowLamp.material.color.setHex(0x333300);
+            pole1.greenLamp.material.color.setHex(0x003300);
+
+            pole2.redLamp.material.color.setHex(0x330000);
+            pole2.yellowLamp.material.color.setHex(0x333300);
+            pole2.greenLamp.material.color.setHex(0x003300);
+
+            if (state === 'GREEN') {
+                pole1.greenLamp.material.color.setHex(0x00ff66);
+                pole2.redLamp.material.color.setHex(0xff0055);
+            } else if (state === 'YELLOW') {
+                pole1.yellowLamp.material.color.setHex(0xf4ee01);
+                pole2.yellowLamp.material.color.setHex(0xf4ee01);
+            } else if (state === 'RED') {
+                pole1.redLamp.material.color.setHex(0xff0055);
+                pole2.greenLamp.material.color.setHex(0x00ff66);
+            }
+        }
+
+        function startTrafficLoop() {
+            if (timerLoop) clearInterval(timerLoop);
+
+            currentPhase = 0;
+            timeLeft = config.green;
+            set3DLights('GREEN');
+
+            timerLoop = setInterval(() => {
+                timeLeft--;
+                document.getElementById('countdownTimer').innerText = String(timeLeft).padStart(2, '0');
+
+                if (timeLeft <= 0) {
+                    if (currentPhase === 0) {
+                        currentPhase = 1;
+                        timeLeft = config.yellow;
+                        set3DLights('YELLOW');
+                        document.getElementById('gtaStatus').innerText = "STATUS: CAUTION! YELLOW ACTIVE";
+                    } else if (currentPhase === 1) {
+                        currentPhase = 2;
+                        timeLeft = config.red;
+                        set3DLights('RED');
+                        document.getElementById('gtaStatus').innerText = "STATUS: STOP! RED ACTIVE";
+                    } else if (currentPhase === 2) {
+                        currentPhase = 0;
+                        timeLeft = config.green;
+                        set3DLights('GREEN');
+                        document.getElementById('gtaStatus').innerText = "STATUS: GO! GREEN ACTIVE";
+                    }
+                }
+            }, 1000);
+        }
+
+        function applyGtaConfig() {
+            const r = parseInt(document.getElementById('cfgRed').value);
+            const y = parseInt(document.getElementById('cfgYellow').value);
+            const g = parseInt(document.getElementById('cfgGreen').value);
+
+            if (isNaN(r) || isNaN(y) || isNaN(g)) {
+                alert("BUSTED! Valid numbers only.");
+                return;
+            }
+
+            config.red = Math.max(1, r);
+            config.yellow = Math.max(1, y);
+            config.green = Math.max(1, g);
+
+            document.getElementById('gtaStatus').innerText = `RESPECT + : 3D TIMERS UPDATED`;
+            startTrafficLoop();
+        }
+
+        function forceState(state) {
+            clearInterval(timerLoop);
+            set3DLights(state);
+            if(state === 'GREEN') currentPhase = 0;
+            else currentPhase = 2;
+            document.getElementById('countdownTimer').innerText = "99";
+            document.getElementById('gtaStatus').innerText = `MANUAL OVERRIDE: FORCED ${state}`;
+        }
+
+        // ANIMATION LOOP (REAL-TIME RENDER + ROTASI RODA)
+        function animate() {
+            requestAnimationFrame(animate);
+
+            cars.forEach(c => {
+                let isMoving = false;
+
+                if (c.dirX !== 0) {
+                    let canMove = true;
+                    if (currentPhase !== 0 && c.mesh.position.x >= (c.stopPos - 2) && c.mesh.position.x <= c.stopPos) {
+                        canMove = false;
+                    }
+                    if (canMove) {
+                        c.mesh.position.x += c.speed;
+                        isMoving = true;
+                    }
+                    if (c.mesh.position.x > 90) c.mesh.position.x = -90;
+
+                } else if (c.dirZ !== 0) {
+                    let canMove = true;
+                    if (currentPhase !== 2 && c.mesh.position.z >= (c.stopPos - 2) && c.mesh.position.z <= c.stopPos) {
+                        canMove = false;
+                    }
+                    if (canMove) {
+                        c.mesh.position.z += c.speed;
+                        isMoving = true;
+                    }
+                    if (c.mesh.position.z > 90) c.mesh.position.z = -90;
+                }
+
+                // Rotasi Roda Realistis Saat Mobil Berjalan
+                if (isMoving) {
+                    c.wheels.forEach(w => {
+                        w.children[0].rotation.x += 0.2;
+                    });
+                }
+            });
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Live Clock GTA
+        setInterval(() => {
+            const now = new Date();
+            const hrs = String(now.getHours()).padStart(2, '0');
+            const mins = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('gtaClock').innerText = `${hrs}:${mins}`;
+        }, 1000);
+
+        startTrafficLoop();
+        animate();
+    </script>
+</body>
+</html>
