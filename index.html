@@ -1,617 +1,803 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GTA San Andreas - 3D Realistic Daylight Traffic</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Impact&family=Montserrat:wght@700;900&display=swap');
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Realistic City Lights 3D - Fixed Yellow Light & Signal Config</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    body {
+      background-color: #060919;
+      color: #fff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      height: 100vh;
+    }
+    #canvas-container {
+      width: 100vw;
+      height: 100vh;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+    .hud-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px;
+    }
+    .hud-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      box-shadow: 0 0 25px rgba(56, 189, 248, 0.2);
+      padding: 15px 25px;
+      border-radius: 16px;
+      pointer-events: auto;
+    }
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 1.5px;
+    }
+    .hud-controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.5);
+      color: #38bdf8;
+      padding: 8px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      transition: all 0.2s ease;
+    }
+    .btn:hover {
+      background: rgba(56, 189, 248, 0.2);
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
+      transform: translateY(-2px);
+    }
+    .btn-primary {
+      background: #0284c7;
+      border-color: #0284c7;
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: #0369a1;
+      box-shadow: 0 0 20px rgba(2, 132, 199, 0.6);
+    }
+    .hud-bottom {
+      display: flex;
+      gap: 15px;
+      pointer-events: auto;
+      flex-wrap: wrap;
+    }
+    .status-card {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+      padding: 12px 16px;
+      border-radius: 12px;
+      min-width: 150px;
+      text-align: center;
+    }
+    .status-title {
+      font-size: 11px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 5px;
+    }
+    .status-val {
+      font-size: 20px;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+    .light-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .light-red { background: #ef4444; box-shadow: 0 0 14px #ef4444; }
+    .light-yellow { background: #f59e0b; box-shadow: 0 0 14px #f59e0b; }
+    .light-green { background: #10b981; box-shadow: 0 0 14px #10b981; }
 
-        :root {
-            --gta-green: #2bb673;
-            --gta-yellow: #f8c300;
-            --gta-red: #e74c3c;
-            --gta-panel-bg: rgba(0, 0, 0, 0.85);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Impact', 'Montserrat', sans-serif;
-            user-select: none;
-        }
-
-        body {
-            background-color: #87ceeb;
-            color: #fff;
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
-            position: relative;
-        }
-
-        #webgl-container {
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
-
-        /* Top HUD GTA SA */
-        .gta-hud-top {
-            position: absolute;
-            top: 20px;
-            right: 30px;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            z-index: 10;
-            pointer-events: none;
-        }
-
-        .clock-display { font-size: 2.2rem; color: var(--gta-yellow); text-shadow: 3px 3px 0 #000; }
-        .money-display { font-size: 2.5rem; color: var(--gta-green); text-shadow: 3px 3px 0 #000; }
-        .wanted-level { color: var(--gta-yellow); font-size: 1.6rem; letter-spacing: 4px; text-shadow: 2px 2px 0 #000; }
-
-        .header-title {
-            position: absolute;
-            top: 20px;
-            left: 30px;
-            z-index: 10;
-            pointer-events: none;
-        }
-
-        h1 {
-            font-size: 2.2rem;
-            color: var(--gta-yellow);
-            text-shadow: 3px 3px 0 #000, -2px -2px 0 #000;
-            text-transform: uppercase;
-        }
-
-        .subtitle { font-size: 0.9rem; color: #fff; text-shadow: 2px 2px 0 #000; text-transform: uppercase; }
-
-        /* Panel Config HUD */
-        .gta-panel {
-            position: absolute;
-            bottom: 25px;
-            right: 25px;
-            width: 320px;
-            background: var(--gta-panel-bg);
-            border: 3px solid var(--gta-green);
-            border-radius: 8px;
-            padding: 18px;
-            box-shadow: 8px 8px 0 #000;
-            z-index: 10;
-            backdrop-filter: blur(5px);
-        }
-
-        .panel-header {
-            font-size: 1.2rem;
-            color: var(--gta-yellow);
-            text-shadow: 2px 2px 0 #000;
-            border-bottom: 2px solid var(--gta-green);
-            padding-bottom: 6px;
-            margin-bottom: 15px;
-            text-transform: uppercase;
-        }
-
-        .config-row {
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .config-row label {
-            font-size: 0.9rem;
-            color: #fff;
-            text-shadow: 1px 1px 0 #000;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .color-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            border: 1px solid #fff;
-        }
-
-        .config-row input {
-            width: 70px;
-            background: #000;
-            border: 2px solid var(--gta-yellow);
-            color: var(--gta-green);
-            padding: 4px 8px;
-            font-size: 1rem;
-            text-align: center;
-            outline: none;
-            box-shadow: 2px 2px 0 #000;
-        }
-
-        .gta-btn {
-            width: 100%;
-            background: var(--gta-green);
-            color: #000;
-            border: 2px solid #fff;
-            padding: 10px;
-            font-size: 1rem;
-            font-weight: 900;
-            cursor: pointer;
-            text-transform: uppercase;
-            box-shadow: 4px 4px 0 #000;
-            transition: transform 0.1s, background 0.2s;
-            margin-top: 8px;
-        }
-
-        .gta-btn:hover { background: var(--gta-yellow); transform: translate(-2px, -2px); box-shadow: 6px 6px 0 #000; }
-        .gta-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #000; }
-
-        .status-banner {
-            margin-top: 12px;
-            background: #000;
-            border: 2px dashed var(--gta-yellow);
-            padding: 8px;
-            text-align: center;
-            color: var(--gta-yellow);
-            font-size: 0.8rem;
-            text-shadow: 1px 1px 0 #000;
-        }
-
-        /* 3D Floating Timer Display */
-        .hud-3d-timer {
-            position: absolute;
-            bottom: 25px;
-            left: 25px;
-            z-index: 10;
-            background: rgba(0,0,0,0.85);
-            border: 3px solid var(--gta-yellow);
-            padding: 15px 25px;
-            border-radius: 8px;
-            box-shadow: 5px 5px 0 #000;
-            pointer-events: none;
-        }
-
-        .hud-3d-timer .timer-val {
-            font-size: 3rem;
-            color: var(--gta-yellow);
-            text-shadow: 3px 3px 0 #000;
-            text-align: center;
-        }
-
-        .hud-3d-timer .timer-lbl {
-            font-size: 0.8rem;
-            color: var(--gta-green);
-            text-transform: uppercase;
-        }
-    </style>
-    <!-- Three.js & OrbitControls -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    .config-card {
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      padding: 12px 18px;
+      border-radius: 12px;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+    .config-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .config-label {
+      font-size: 10px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .config-input {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .config-input input[type=range] {
+      accent-color: #38bdf8;
+      cursor: pointer;
+      width: 90px;
+    }
+    .config-val-badge {
+      font-size: 13px;
+      font-weight: 700;
+      color: #00f0ff;
+      min-width: 25px;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
-
-    <div id="webgl-container"></div>
-
-    <div class="header-title">
-        <h1>SAN ANDREAS 3D DAYLIGHT</h1>
-        <div class="subtitle">REALISTIC VEHICLE & SIGNAL SIMULATOR</div>
+  <div id="canvas-container"></div>
+  
+  <div class="hud-layer">
+    <div class="hud-header">
+      <div class="brand-title">REALISTIC CITY LIGHTS 3D</div>
+      <div class="hud-controls">
+        <button class="btn" id="btn-cam">KAMERA: DRONE AUTO</button>
+        <button class="btn btn-primary" id="btn-mode">LALU LINTAS: OTOMATIS</button>
+      </div>
     </div>
+    
+    <div class="hud-bottom">
+      <div class="status-card">
+        <div class="status-title">UTARA - SELATAN</div>
+        <div class="status-val" id="timer-ns">
+          <span class="light-indicator light-green" id="ind-ns"></span><span id="val-ns">15s (GREEN)</span>
+        </div>
+      </div>
+      <div class="status-card">
+        <div class="status-title">TIMUR - BARAT</div>
+        <div class="status-val" id="timer-ew">
+          <span class="light-indicator light-red" id="ind-ew"></span><span id="val-ew">18s (RED)</span>
+        </div>
+      </div>
+      
+      <!-- SIGNAL TIMER CONFIG PANEL -->
+      <div class="config-card">
+        <div class="config-group">
+          <div class="config-label">CONFIG TIMER N/S</div>
+          <div class="config-input">
+            <input type="range" id="input-ns" min="10" max="60" value="15">
+            <span class="config-val-badge" id="badge-ns">15s</span>
+          </div>
+        </div>
+        <div class="config-group">
+          <div class="config-label">CONFIG TIMER E/W</div>
+          <div class="config-input">
+            <input type="range" id="input-ew" min="10" max="60" value="15">
+            <span class="config-val-badge" id="badge-ew">15s</span>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btn-apply-timer" style="padding: 6px 12px; font-size: 11px;">RESET TIMER</button>
+      </div>
 
-    <div class="gta-hud-top">
-        <div class="clock-display" id="gtaClock">12:00</div>
-        <div class="money-display">$999,999</div>
-        <div class="wanted-level">★ ★ ★ ★ ☆</div>
+      <div class="status-card">
+        <div class="status-title">TOTAL KENDARAAN</div>
+        <div class="status-val" id="car-count">0</div>
+      </div>
     </div>
+  </div>
 
-    <div class="hud-3d-timer">
-        <div class="timer-lbl">SIGNAL COUNTDOWN</div>
-        <div class="timer-val" id="countdownTimer">00</div>
-    </div>
+  <script>
+    // --- SCENE SETUP (REALISTIC NIGHT CITYLIGHTS) ---
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x060919); 
+    scene.fog = new THREE.FogExp2(0x060919, 0.0035);
 
-    <div class="gta-panel">
-        <div class="panel-header">STATISTICS & 3D CONFIG</div>
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(70, 55, 70);
 
-        <div class="config-row">
-            <label>
-                <span class="color-dot" style="background: var(--gta-red);"></span>
-                RED LIGHT (SEC):
-            </label>
-            <input type="number" id="cfgRed" value="6" min="1" max="60">
-        </div>
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.35;
+    container.appendChild(renderer.domElement);
 
-        <div class="config-row">
-            <label>
-                <span class="color-dot" style="background: var(--gta-yellow);"></span>
-                YELLOW LIGHT (SEC):
-            </label>
-            <input type="number" id="cfgYellow" value="2" min="1" max="10">
-        </div>
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 2 - 0.02;
 
-        <div class="config-row">
-            <label>
-                <span class="color-dot" style="background: var(--gta-green);"></span>
-                GREEN LIGHT (SEC):
-            </label>
-            <input type="number" id="cfgGreen" value="6" min="1" max="60">
-        </div>
+    // --- ENHANCED ATMOSPHERIC CITYLIGHTING ---
+    const ambientLight = new THREE.AmbientLight(0x1e293b, 1.2);
+    scene.add(ambientLight);
 
-        <button class="gta-btn" onclick="applyGtaConfig()">[ APPLY CONFIG ]</button>
-        <button class="gta-btn" style="background: var(--gta-yellow);" onclick="forceState('GREEN')">OVERRIDE GREEN</button>
-        <button class="gta-btn" style="background: var(--gta-red); color:#fff;" onclick="forceState('RED')">OVERRIDE RED</button>
+    const moonLight = new THREE.DirectionalLight(0x38bdf8, 0.8);
+    moonLight.position.set(80, 140, 50);
+    moonLight.castShadow = true;
+    scene.add(moonLight);
 
-        <div class="status-banner" id="gtaStatus">
-            MISSION: MAINTAIN 3D TRAFFIC FLOW
-        </div>
-    </div>
+    const skyGlow = new THREE.DirectionalLight(0x818cf8, 0.5);
+    skyGlow.position.set(-80, 60, -50);
+    scene.add(skyGlow);
 
-    <script>
-        // Setup Scene Three.js (Daylight Theme)
-        const container = document.getElementById('webgl-container');
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87ceeb); // Warna langit biru cerah
-        scene.fog = new THREE.FogExp2(0x87ceeb, 0.008);
+    const centerPointLight = new THREE.PointLight(0x38bdf8, 2.5, 90);
+    centerPointLight.position.set(0, 15, 0);
+    scene.add(centerPointLight);
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(45, 30, 50);
+    // --- REALISTIC ENVIRONMENT: ROADS, SIDEWALKS & GREENERY ---
+    const groundGeo = new THREE.PlaneGeometry(300, 300);
+    const groundMat = new THREE.MeshStandardMaterial({ color: 0x070b19, roughness: 0.8 });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        container.appendChild(renderer.domElement);
+    const roadWidth = 14;
+    const roadMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5, metalness: 0.2 });
+    
+    const nsRoad = new THREE.Mesh(new THREE.PlaneGeometry(roadWidth, 300), roadMat);
+    nsRoad.rotation.x = -Math.PI / 2;
+    nsRoad.position.y = 0.01;
+    nsRoad.receiveShadow = true;
+    scene.add(nsRoad);
 
-        const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.maxPolarAngle = Math.PI / 2 - 0.05;
+    const ewRoad = new THREE.Mesh(new THREE.PlaneGeometry(300, roadWidth), roadMat);
+    ewRoad.rotation.x = -Math.PI / 2;
+    ewRoad.position.y = 0.01;
+    ewRoad.receiveShadow = true;
+    scene.add(ewRoad);
 
-        // Pencahayaan Siang Hari (Bright Daylight Setup)
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-        scene.add(ambientLight);
+    function createSidewalks() {
+      const swMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.6 });
+      const swWidth = 5;
+      const swHeight = 0.3;
 
-        const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
-        sunLight.position.set(50, 80, 40);
-        sunLight.castShadow = true;
-        sunLight.shadow.mapSize.width = 2048;
-        sunLight.shadow.mapSize.height = 2048;
-        sunLight.shadow.camera.near = 0.5;
-        sunLight.shadow.camera.far = 200;
-        const d = 60;
-        sunLight.shadow.camera.left = -d;
-        sunLight.shadow.camera.right = d;
-        sunLight.shadow.camera.top = d;
-        sunLight.shadow.camera.bottom = -d;
-        scene.add(sunLight);
+      const quadrants = [
+        { x: -16 - swWidth/2, z: -16 - swWidth/2 },
+        { x: 16 + swWidth/2, z: -16 - swWidth/2 },
+        { x: -16 - swWidth/2, z: 16 + swWidth/2 },
+        { x: 16 + swWidth/2, z: 16 + swWidth/2 }
+      ];
 
-        // Rumput / Ground
-        const grassGeo = new THREE.PlaneGeometry(300, 300);
-        const grassMat = new THREE.MeshStandardMaterial({ color: 0x557a2b, roughness: 0.9 });
-        const grass = new THREE.Mesh(grassGeo, grassMat);
-        grass.rotation.x = -Math.PI / 2;
-        grass.receiveShadow = true;
-        scene.add(grass);
+      quadrants.forEach(q => {
+        const swMesh = new THREE.Mesh(new THREE.BoxGeometry(100, swHeight, 100), swMat);
+        swMesh.position.set(q.x < 0 ? q.x - 45 : q.x + 45, swHeight / 2, q.z < 0 ? q.z - 45 : q.z + 45);
+        swMesh.receiveShadow = true;
+        scene.add(swMesh);
+      });
+    }
+    createSidewalks();
 
-        // Jalan Raya 3D (Asphalt)
-        const roadMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.6 });
-        const roadH = new THREE.Mesh(new THREE.PlaneGeometry(300, 18), roadMat);
-        roadH.rotation.x = -Math.PI / 2;
-        roadH.position.y = 0.02;
-        roadH.receiveShadow = true;
-        scene.add(roadH);
+    function createRoadMarkings() {
+      const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const yellowLineMat = new THREE.MeshBasicMaterial({ color: 0xfcb316 });
 
-        const roadV = new THREE.Mesh(new THREE.PlaneGeometry(18, 300), roadMat);
-        roadV.rotation.x = -Math.PI / 2;
-        roadV.position.y = 0.02;
-        roadV.receiveShadow = true;
-        scene.add(roadV);
+      for (let i = -140; i <= 140; i += 12) {
+        if (Math.abs(i) < 18) continue;
 
-        // Garis-Garis Jalan (White Lines)
-        const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-        const lineH = new THREE.Mesh(new THREE.PlaneGeometry(300, 0.4), lineMat);
-        lineH.rotation.x = -Math.PI / 2;
-        lineH.position.y = 0.03;
-        scene.add(lineH);
+        const nsLine = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 6), yellowLineMat);
+        nsLine.rotation.x = -Math.PI / 2;
+        nsLine.position.set(0, 0.02, i);
+        scene.add(nsLine);
 
-        const lineV = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 300), lineMat);
-        lineV.rotation.x = -Math.PI / 2;
-        lineV.position.y = 0.03;
-        scene.add(lineV);
+        const ewLine = new THREE.Mesh(new THREE.PlaneGeometry(6, 0.3), yellowLineMat);
+        ewLine.rotation.x = -Math.PI / 2;
+        ewLine.position.set(i, 0.02, 0);
+        scene.add(ewLine);
+      }
 
-        // Tiang Lampu Lalu Lintas 3D
-        function createTrafficLightPole(x, z, rotY) {
-            const group = new THREE.Group();
-            
-            const poleGeo = new THREE.CylinderGeometry(0.25, 0.3, 9);
-            const poleMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8 });
-            const pole = new THREE.Mesh(poleGeo, poleMat);
-            pole.position.y = 4.5;
-            pole.castShadow = true;
-            group.add(pole);
+      for (let offset = -5; offset <= 5; offset += 1.8) {
+        const zN = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 3.5), lineMat);
+        zN.rotation.x = -Math.PI / 2;
+        zN.position.set(offset, 0.03, -11);
+        scene.add(zN);
 
-            const boxGeo = new THREE.BoxGeometry(1.2, 3.6, 1.2);
-            const boxMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
-            const box = new THREE.Mesh(boxGeo, boxMat);
-            box.position.y = 7.5;
-            box.castShadow = true;
-            group.add(box);
+        const zS = zN.clone(); zS.position.set(offset, 0.03, 11); scene.add(zS);
 
-            const lampGeo = new THREE.SphereGeometry(0.45, 16, 16);
-            
-            const redMat = new THREE.MeshStandardMaterial({ color: 0x330000, roughness: 0.2 });
-            const redLamp = new THREE.Mesh(lampGeo, redMat);
-            redLamp.position.set(0, 8.5, 0.6);
-            group.add(redLamp);
+        const zE = new THREE.Mesh(new THREE.PlaneGeometry(3.5, 1.0), lineMat);
+        zE.rotation.x = -Math.PI / 2;
+        zE.position.set(11, 0.03, offset);
+        scene.add(zE);
 
-            const yellowMat = new THREE.MeshStandardMaterial({ color: 0x333300, roughness: 0.2 });
-            const yellowLamp = new THREE.Mesh(lampGeo, yellowMat);
-            yellowLamp.position.set(0, 7.5, 0.6);
-            group.add(yellowLamp);
+        const zW = zE.clone(); zW.position.set(-11, 0.03, offset); scene.add(zW);
+      }
+    }
+    createRoadMarkings();
 
-            const greenMat = new THREE.MeshStandardMaterial({ color: 0x003300, roughness: 0.2 });
-            const greenLamp = new THREE.Mesh(lampGeo, greenMat);
-            greenLamp.position.set(0, 6.5, 0.6);
-            group.add(greenLamp);
+    function createVegetation() {
+      const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3f2e1e, roughness: 0.9 });
+      const leavesMat = new THREE.MeshStandardMaterial({ color: 0x10b981, roughness: 0.4 });
+      const bushMat = new THREE.MeshStandardMaterial({ color: 0x059669, roughness: 0.5 });
 
-            group.position.set(x, 0, z);
-            group.rotation.y = rotY;
-            scene.add(group);
+      const plantPositions = [
+        { x: -8.5, z: -30 }, { x: -8.5, z: -60 }, { x: -8.5, z: -90 },
+        { x: 8.5, z: -30 }, { x: 8.5, z: -60 }, { x: 8.5, z: -90 },
+        { x: -8.5, z: 30 }, { x: -8.5, z: 60 }, { x: -8.5, z: 90 },
+        { x: 8.5, z: 30 }, { x: 8.5, z: 60 }, { x: 8.5, z: 90 },
+        { x: -30, z: -8.5 }, { x: -60, z: -8.5 }, { x: -90, z: -8.5 },
+        { x: -30, z: 8.5 }, { x: -60, z: 8.5 }, { x: -90, z: 8.5 },
+        { x: 30, z: -8.5 }, { x: 60, z: -8.5 }, { x: 90, z: -8.5 },
+        { x: 30, z: 8.5 }, { x: 60, z: 8.5 }, { x: 90, z: 8.5 }
+      ];
 
-            return { redLamp, yellowLamp, greenLamp };
+      plantPositions.forEach(p => {
+        const treeGroup = new THREE.Group();
+
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 4), trunkMat);
+        trunk.position.y = 2;
+        trunk.castShadow = true;
+        treeGroup.add(trunk);
+
+        const leaves = new THREE.Mesh(new THREE.SphereGeometry(2.4, 8, 8), leavesMat);
+        leaves.position.y = 4.8;
+        leaves.castShadow = true;
+        treeGroup.add(leaves);
+
+        const bush = new THREE.Mesh(new THREE.SphereGeometry(0.9, 8, 8), bushMat);
+        bush.position.set(0.6, 0.4, 0.4);
+        treeGroup.add(bush);
+
+        treeGroup.position.set(p.x, 0.3, p.z);
+        scene.add(treeGroup);
+      });
+    }
+    createVegetation();
+
+    // --- REALISTIC CITY LIGHTS BUILDING GENERATOR ---
+    function generateWindowTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 128;
+      canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, 128, 256);
+
+      const colors = ['#fef08a', '#e0f2fe', '#bae6fd', '#fef3c7', '#38bdf8'];
+      
+      for (let y = 10; y < 240; y += 20) {
+        for (let x = 10; x < 110; x += 18) {
+          if (Math.random() > 0.3) {
+            ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+            ctx.fillRect(x, y, 10, 12);
+          } else {
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(x, y, 10, 12);
+          }
         }
+      }
+      return new THREE.CanvasTexture(canvas);
+    }
 
-        const pole1 = createTrafficLightPole(-11, -11, 0);
-        const pole2 = createTrafficLightPole(11, 11, Math.PI);
+    const windowTex = generateWindowTexture();
+    windowTex.wrapS = THREE.RepeatWrapping;
+    windowTex.wrapT = THREE.RepeatWrapping;
+    windowTex.repeat.set(2, 4);
 
-        // BUILDER MOBIL REALISTIS 3D (DETAILED CAR CREATOR)
-        function createRealisticCar(colorHex) {
-            const carGroup = new THREE.Group();
+    function createCity() {
+      const bColors = [0x0f172a, 0x1e1b4b, 0x1e293b, 0x090d16];
+      const windowLightColors = [0xfef08a, 0x38bdf8, 0x818cf8, 0xf43f5e];
 
-            // Body Utama (Metallic Paint)
-            const bodyMat = new THREE.MeshStandardMaterial({ color: colorHex, metalness: 0.6, roughness: 0.2 });
-            
-            const lowerBodyGeo = new THREE.BoxGeometry(2.2, 0.7, 4.6);
-            const lowerBody = new THREE.Mesh(lowerBodyGeo, bodyMat);
-            lowerBody.position.y = 0.65;
-            lowerBody.castShadow = true;
-            carGroup.add(lowerBody);
+      for (let x = -110; x <= 110; x += 32) {
+        for (let z = -110; z <= 110; z += 32) {
+          if (Math.abs(x) < 22 || Math.abs(z) < 22) continue;
 
-            // Kabin / Atap / Kaca Transparan
-            const cabinGeo = new THREE.BoxGeometry(1.8, 0.65, 2.4);
-            const glassMat = new THREE.MeshStandardMaterial({ color: 0x111122, roughness: 0.1, metalness: 0.9, transparent: true, opacity: 0.85 });
-            const cabin = new THREE.Mesh(cabinGeo, glassMat);
-            cabin.position.set(0, 1.25, -0.2);
-            cabin.castShadow = true;
-            carGroup.add(cabin);
+          const h = 25 + Math.random() * 50;
+          const w = 20 + Math.random() * 4;
+          const d = 20 + Math.random() * 4;
 
-            // Lampu Depan & Belakang Realistis
-            const headLightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-            const hl1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, 0.1), headLightMat);
-            hl1.position.set(-0.7, 0.65, 2.31);
-            const hl2 = hl1.clone();
-            hl2.position.set(0.7, 0.65, 2.31);
-            carGroup.add(hl1);
-            carGroup.add(hl2);
+          const bMat = new THREE.MeshStandardMaterial({
+            color: bColors[Math.floor(Math.random() * bColors.length)],
+            roughness: 0.2,
+            metalness: 0.75
+          });
+          const bMesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), bMat);
+          bMesh.position.set(x, h / 2, z);
+          bMesh.castShadow = true;
+          scene.add(bMesh);
 
-            const tailLightMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-            const tl1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, 0.1), tailLightMat);
-            tl1.position.set(-0.7, 0.65, -2.31);
-            const tl2 = tl1.clone();
-            tl2.position.set(0.7, 0.65, -2.31);
-            carGroup.add(tl1);
-            carGroup.add(tl2);
+          const winMat = new THREE.MeshStandardMaterial({
+            map: windowTex,
+            emissiveMap: windowTex,
+            emissive: 0xffffff,
+            emissiveIntensity: 0.85,
+            roughness: 0.1,
+            metalness: 0.9
+          });
+          const winMesh = new THREE.Mesh(new THREE.BoxGeometry(w * 0.96, h * 0.92, d * 0.96), winMat);
+          winMesh.position.set(x, h / 2, z);
+          scene.add(winMesh);
 
-            // 4 Roda 3D Berputar (3D Wheels)
-            const wheelGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.35, 16);
-            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
-            const rimMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.8 });
+          const lightColor = windowLightColors[Math.floor(Math.random() * windowLightColors.length)];
+          const roofTrimMat = new THREE.MeshBasicMaterial({ color: lightColor });
+          const roofTrim = new THREE.Mesh(new THREE.BoxGeometry(w + 0.5, 0.6, d + 0.5), roofTrimMat);
+          roofTrim.position.set(x, h + 0.3, z);
+          scene.add(roofTrim);
 
-            const wheels = [];
-            const wheelPositions = [
-                [-1.1, 0.38, 1.4],  // Depan Kiri
-                [1.1, 0.38, 1.4],   // Depan Kanan
-                [-1.1, 0.38, -1.4], // Belakang Kiri
-                [1.1, 0.38, -1.4]   // Belakang Kanan
-            ];
+          if (h > 45) {
+            const beaconMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+            const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 8), beaconMat);
+            beacon.position.set(x, h + 1.2, z);
+            scene.add(beacon);
+          }
 
-            wheelPositions.forEach(pos => {
-                const wGroup = new THREE.Group();
-                const tyre = new THREE.Mesh(wheelGeo, wheelMat);
-                tyre.rotation.z = Math.PI / 2;
-                tyre.castShadow = true;
-                wGroup.add(tyre);
-
-                // Velg / Rim
-                const rim = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.36, 0.36), rimMat);
-                wGroup.add(rim);
-
-                wGroup.position.set(...pos);
-                carGroup.add(wGroup);
-                wheels.push(wGroup);
-            });
-
-            return { carGroup, wheels };
+          if (Math.random() > 0.35) {
+            const buildingGlow = new THREE.PointLight(lightColor, 1.8, 45);
+            buildingGlow.position.set(x, h * 0.6, z);
+            scene.add(buildingGlow);
+          }
         }
+      }
+    }
+    createCity();
 
-        // MANAGEMENT TRAFFIC MULTI-MOBIL 3D
-        const cars = [];
-        const carColors = [0x0055ff, 0x2bb673, 0xf8c300, 0xe74c3c, 0x9b59b6];
+    // --- TRAFFIC LIGHT SYSTEM & SIGNAL TIMER CONFIG ---
+    let stateNS = 'GREEN';
+    let stateEW = 'RED';
 
-        function spawnCar(colorHex, x, z, dirX, dirZ, stopPos) {
-            const { carGroup, wheels } = createRealisticCar(colorHex);
-            
-            carGroup.position.set(x, 0, z);
-            if(dirX !== 0) carGroup.rotation.y = dirX > 0 ? Math.PI / 2 : -Math.PI / 2;
-            if(dirZ !== 0) carGroup.rotation.y = dirZ > 0 ? 0 : Math.PI;
+    let configDurationNS = 15;
+    let configDurationEW = 15;
 
-            scene.add(carGroup);
+    let timerNS = configDurationNS;
+    let timerEW = configDurationNS + 3;
 
-            cars.push({
-                mesh: carGroup,
-                wheels: wheels,
-                startX: x, startZ: z,
-                dirX: dirX, dirZ: dirZ,
-                speed: 0.28 + Math.random() * 0.12,
-                stopPos: stopPos
-            });
-        }
+    const inputNS = document.getElementById('input-ns');
+    const inputEW = document.getElementById('input-ew');
+    const badgeNS = document.getElementById('badge-ns');
+    const badgeEW = document.getElementById('badge-ew');
+    const btnApply = document.getElementById('btn-apply-timer');
 
-        // Spawn Banyak Mobil
-        spawnCar(carColors[0], -50, -4, 1, 0, -12);
-        spawnCar(carColors[1], -80, -4, 1, 0, -20);
-        spawnCar(carColors[2], -110, -4, 1, 0, -28);
+    inputNS.addEventListener('input', (e) => {
+      configDurationNS = parseInt(e.target.value);
+      badgeNS.innerText = `${configDurationNS}s`;
+    });
 
-        spawnCar(carColors[3], 4, -50, 0, 1, -12);
-        spawnCar(carColors[4], 4, -80, 0, 1, -20);
-        spawnCar(carColors[0], 4, -110, 0, 1, -28);
+    inputEW.addEventListener('input', (e) => {
+      configDurationEW = parseInt(e.target.value);
+      badgeEW.innerText = `${configDurationEW}s`;
+    });
 
-        // LOGIKA KONTROL TIMING LAMPU
-        let config = { red: 6, yellow: 2, green: 6 };
-        let currentPhase = 0; // 0: Green (H), 1: Yellow, 2: Red (V Green)
-        let timeLeft = 0;
-        let timerLoop = null;
+    btnApply.addEventListener('click', () => {
+      if (stateNS === 'GREEN') {
+        timerNS = configDurationNS;
+        timerEW = configDurationNS + 3;
+      } else if (stateEW === 'GREEN') {
+        timerEW = configDurationEW;
+        timerNS = configDurationEW + 3;
+      }
+      updateLightsVisual();
+    });
 
-        function set3DLights(state) {
-            pole1.redLamp.material.color.setHex(0x330000);
-            pole1.yellowLamp.material.color.setHex(0x333300);
-            pole1.greenLamp.material.color.setHex(0x003300);
+    const lights3D = {};
+    function createTrafficLight(name, x, z, rotY) {
+      const group = new THREE.Group();
+      
+      const poleMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.8 });
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 8), poleMat);
+      pole.position.y = 4;
+      pole.castShadow = true;
+      group.add(pole);
 
-            pole2.redLamp.material.color.setHex(0x330000);
-            pole2.yellowLamp.material.color.setHex(0x333300);
-            pole2.greenLamp.material.color.setHex(0x003300);
+      const boxMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.2 });
+      const box = new THREE.Mesh(new THREE.BoxGeometry(1.4, 3.4, 1.4), boxMat);
+      box.position.y = 7;
+      group.add(box);
 
-            if (state === 'GREEN') {
-                pole1.greenLamp.material.color.setHex(0x00ff66);
-                pole2.redLamp.material.color.setHex(0xff0055);
-            } else if (state === 'YELLOW') {
-                pole1.yellowLamp.material.color.setHex(0xf4ee01);
-                pole2.yellowLamp.material.color.setHex(0xf4ee01);
-            } else if (state === 'RED') {
-                pole1.redLamp.material.color.setHex(0xff0055);
-                pole2.greenLamp.material.color.setHex(0x00ff66);
-            }
-        }
+      const rGeo = new THREE.SphereGeometry(0.38, 16, 16);
+      const rMesh = new THREE.Mesh(rGeo, new THREE.MeshBasicMaterial({ color: 0x330000 }));
+      const yMesh = new THREE.Mesh(rGeo, new THREE.MeshBasicMaterial({ color: 0x333300 }));
+      const gMesh = new THREE.Mesh(rGeo, new THREE.MeshBasicMaterial({ color: 0x003300 }));
 
-        function startTrafficLoop() {
-            if (timerLoop) clearInterval(timerLoop);
+      rMesh.position.set(0, 7.9, 0.7);
+      yMesh.position.set(0, 7.0, 0.7);
+      gMesh.position.set(0, 6.1, 0.7);
 
-            currentPhase = 0;
-            timeLeft = config.green;
-            set3DLights('GREEN');
+      group.add(rMesh, yMesh, gMesh);
 
-            timerLoop = setInterval(() => {
-                timeLeft--;
-                document.getElementById('countdownTimer').innerText = String(timeLeft).padStart(2, '0');
+      const lightGlow = new THREE.PointLight(0x10b981, 2.5, 25);
+      lightGlow.position.set(0, 7, 1);
+      group.add(lightGlow);
 
-                if (timeLeft <= 0) {
-                    if (currentPhase === 0) {
-                        currentPhase = 1;
-                        timeLeft = config.yellow;
-                        set3DLights('YELLOW');
-                        document.getElementById('gtaStatus').innerText = "STATUS: CAUTION! YELLOW ACTIVE";
-                    } else if (currentPhase === 1) {
-                        currentPhase = 2;
-                        timeLeft = config.red;
-                        set3DLights('RED');
-                        document.getElementById('gtaStatus').innerText = "STATUS: STOP! RED ACTIVE";
-                    } else if (currentPhase === 2) {
-                        currentPhase = 0;
-                        timeLeft = config.green;
-                        set3DLights('GREEN');
-                        document.getElementById('gtaStatus').innerText = "STATUS: GO! GREEN ACTIVE";
-                    }
-                }
-            }, 1000);
-        }
+      group.position.set(x, 0, z);
+      group.rotation.y = rotY;
+      scene.add(group);
 
-        function applyGtaConfig() {
-            const r = parseInt(document.getElementById('cfgRed').value);
-            const y = parseInt(document.getElementById('cfgYellow').value);
-            const g = parseInt(document.getElementById('cfgGreen').value);
+      lights3D[name] = { red: rMesh, yellow: yMesh, green: gMesh, glow: lightGlow };
+    }
 
-            if (isNaN(r) || isNaN(y) || isNaN(g)) {
-                alert("BUSTED! Valid numbers only.");
-                return;
-            }
+    createTrafficLight('N', -9, -9, 0);
+    createTrafficLight('S', 9, 9, Math.PI);
+    createTrafficLight('E', 9, -9, Math.PI / 2);
+    createTrafficLight('W', -9, 9, -Math.PI / 2);
 
-            config.red = Math.max(1, r);
-            config.yellow = Math.max(1, y);
-            config.green = Math.max(1, g);
+    // FIX LOGIK KUNING: Memastikan warna kuning menyala terang saat fase 'YELLOW'
+    function updateLightsVisual() {
+      const setMat = (lightObj, activeColor) => {
+        lightObj.red.material.color.setHex(activeColor === 'RED' ? 0xef4444 : 0x330000);
+        lightObj.yellow.material.color.setHex(activeColor === 'YELLOW' ? 0xffcc00 : 0x333300);
+        lightObj.green.material.color.setHex(activeColor === 'GREEN' ? 0x10b981 : 0x003300);
+        
+        let hexGlow = 0x10b981;
+        if (activeColor === 'RED') hexGlow = 0xef4444;
+        if (activeColor === 'YELLOW') hexGlow = 0xffcc00;
+        lightObj.glow.color.setHex(hexGlow);
+      };
 
-            document.getElementById('gtaStatus').innerText = `RESPECT + : 3D TIMERS UPDATED`;
-            startTrafficLoop();
-        }
+      setMat(lights3D['N'], stateNS);
+      setMat(lights3D['S'], stateNS);
+      setMat(lights3D['E'], stateEW);
+      setMat(lights3D['W'], stateEW);
 
-        function forceState(state) {
-            clearInterval(timerLoop);
-            set3DLights(state);
-            if(state === 'GREEN') currentPhase = 0;
-            else currentPhase = 2;
-            document.getElementById('countdownTimer').innerText = "99";
-            document.getElementById('gtaStatus').innerText = `MANUAL OVERRIDE: FORCED ${state}`;
-        }
+      document.getElementById('ind-ns').className = `light-indicator light-${stateNS.toLowerCase()}`;
+      document.getElementById('ind-ew').className = `light-indicator light-${stateEW.toLowerCase()}`;
+      document.getElementById('val-ns').innerText = `${timerNS}s (${stateNS})`;
+      document.getElementById('val-ew').innerText = `${timerEW}s (${stateEW})`;
+    }
 
-        // ANIMATION LOOP (REAL-TIME RENDER + ROTASI RODA)
-        function animate() {
-            requestAnimationFrame(animate);
+    setInterval(() => {
+      if (timerNS > 0) timerNS--;
+      if (timerEW > 0) timerEW--;
 
-            cars.forEach(c => {
-                let isMoving = false;
+      if (stateNS === 'GREEN' && timerNS === 0) {
+        stateNS = 'YELLOW'; 
+        timerNS = 3;
+      } else if (stateNS === 'YELLOW' && timerNS === 0) {
+        stateNS = 'RED'; 
+        timerNS = configDurationEW + 3;
+        stateEW = 'GREEN'; 
+        timerEW = configDurationEW;
+      }
 
-                if (c.dirX !== 0) {
-                    let canMove = true;
-                    if (currentPhase !== 0 && c.mesh.position.x >= (c.stopPos - 2) && c.mesh.position.x <= c.stopPos) {
-                        canMove = false;
-                    }
-                    if (canMove) {
-                        c.mesh.position.x += c.speed;
-                        isMoving = true;
-                    }
-                    if (c.mesh.position.x > 90) c.mesh.position.x = -90;
+      if (stateEW === 'GREEN' && timerEW === 0) {
+        stateEW = 'YELLOW'; 
+        timerEW = 3;
+      } else if (stateEW === 'YELLOW' && timerEW === 0) {
+        stateEW = 'RED'; 
+        timerEW = configDurationNS + 3;
+        stateNS = 'GREEN'; 
+        timerNS = configDurationNS;
+      }
 
-                } else if (c.dirZ !== 0) {
-                    let canMove = true;
-                    if (currentPhase !== 2 && c.mesh.position.z >= (c.stopPos - 2) && c.mesh.position.z <= c.stopPos) {
-                        canMove = false;
-                    }
-                    if (canMove) {
-                        c.mesh.position.z += c.speed;
-                        isMoving = true;
-                    }
-                    if (c.mesh.position.z > 90) c.mesh.position.z = -90;
-                }
+      updateLightsVisual();
+    }, 1000);
 
-                // Rotasi Roda Realistis Saat Mobil Berjalan
-                if (isMoving) {
-                    c.wheels.forEach(w => {
-                        w.children[0].rotation.x += 0.2;
-                    });
-                }
-            });
+    // --- REALISTIC 3D VEHICLE WITH DYNAMIC HEADLIGHT SPOTLIGHTS ---
+    const cars = [];
+    const carMetallicColors = [0x0f172a, 0x38bdf8, 0x818cf8, 0xf59e0b, 0x10b981, 0xec4899, 0xffffff];
 
-            controls.update();
-            renderer.render(scene, camera);
-        }
+    function createDetailedCarMesh(colorHex) {
+      const carGroup = new THREE.Group();
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+      const bodyMat = new THREE.MeshStandardMaterial({
+        color: colorHex,
+        metalness: 0.85,
+        roughness: 0.15
+      });
+      const darkMetalMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3 });
+      const glassMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.9, roughness: 0.05, transparent: true, opacity: 0.85 });
+      const chromeMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.95, roughness: 0.05 });
+      const tireMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 });
+      const headLampMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const tailLampMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+
+      const bodyLower = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.7, 4.6), bodyMat);
+      bodyLower.position.y = 0.6;
+      bodyLower.castShadow = true;
+      carGroup.add(bodyLower);
+
+      const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.7, 2.4), glassMat);
+      cabin.position.set(0, 1.25, -0.2);
+      carGroup.add(cabin);
+
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.05, 2.2), bodyMat);
+      roof.position.set(0, 1.62, -0.2);
+      carGroup.add(roof);
+
+      const hood = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.15, 1.3), bodyMat);
+      hood.position.set(0, 0.95, 1.4);
+      carGroup.add(hood);
+
+      const grille = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.3, 0.1), darkMetalMat);
+      grille.position.set(0, 0.6, 2.31);
+      carGroup.add(grille);
+
+      const hl1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, 0.1), headLampMat);
+      hl1.position.set(-0.8, 0.65, 2.31);
+      const hl2 = hl1.clone();
+      hl2.position.set(0.8, 0.65, 2.31);
+      carGroup.add(hl1, hl2);
+
+      const headlightSpot = new THREE.SpotLight(0xffffff, 4.0, 35, Math.PI / 6, 0.4, 1.0);
+      headlightSpot.position.set(0, 0.8, 2.3);
+      
+      const headTarget = new THREE.Object3D();
+      headTarget.position.set(0, 0, 15);
+      carGroup.add(headTarget);
+      headlightSpot.target = headTarget;
+      carGroup.add(headlightSpot);
+
+      const tl1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, 0.1), tailLampMat);
+      tl1.position.set(-0.8, 0.65, -2.31);
+      const tl2 = tl1.clone();
+      tl2.position.set(0.8, 0.65, -2.31);
+      carGroup.add(tl1, tl2);
+
+      const wheelGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.3, 16);
+      const rimGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.32, 12);
+
+      const wheelPositions = [
+        { x: -1.15, z: 1.4 },
+        { x: 1.15, z: 1.4 },
+        { x: -1.15, z: -1.4 },
+        { x: 1.15, z: -1.4 }
+      ];
+
+      wheelPositions.forEach(wp => {
+        const wMesh = new THREE.Mesh(wheelGeo, tireMat);
+        wMesh.rotation.z = Math.PI / 2;
+        wMesh.position.set(wp.x, 0.45, wp.z);
+        wMesh.castShadow = true;
+
+        const rMesh = new THREE.Mesh(rimGeo, chromeMat);
+        rMesh.rotation.z = Math.PI / 2;
+        rMesh.position.set(wp.x, 0.45, wp.z);
+
+        carGroup.add(wMesh, rMesh);
+      });
+
+      return carGroup;
+    }
+
+    function spawnCar(dir) {
+      const color = carMetallicColors[Math.floor(Math.random() * carMetallicColors.length)];
+      const carMesh = createDetailedCarMesh(color);
+
+      let pos = { x: 0, z: 0 };
+      let rot = 0;
+      let stopLine = 0;
+
+      if (dir === 'N') { pos = { x: -3.5, z: -110 }; rot = 0; stopLine = -10; }
+      if (dir === 'S') { pos = { x: 3.5, z: 110 }; rot = Math.PI; stopLine = 10; }
+      if (dir === 'E') { pos = { x: 110, z: -3.5 }; rot = -Math.PI / 2; stopLine = 10; }
+      if (dir === 'W') { pos = { x: -110, z: 3.5 }; rot = Math.PI / 2; stopLine = -10; }
+
+      carMesh.position.set(pos.x, 0, pos.z);
+      carMesh.rotation.y = rot;
+      scene.add(carMesh);
+
+      cars.push({
+        mesh: carMesh,
+        dir: dir,
+        speed: 0,
+        maxSpeed: 0.35 + Math.random() * 0.1,
+        stopLine: stopLine
+      });
+
+      document.getElementById('car-count').innerText = cars.length;
+    }
+
+    setInterval(() => {
+      const dirs = ['N', 'S', 'E', 'W'];
+      if (cars.length < 24) {
+        spawnCar(dirs[Math.floor(Math.random() * dirs.length)]);
+      }
+    }, 1400);
+
+    function updateCars() {
+      const SAFE_DISTANCE = 8.5;
+
+      cars.forEach((car, index) => {
+        let targetSpeed = car.maxSpeed;
+        const pos = car.mesh.position;
+
+        let isRed = false;
+        if (car.dir === 'N' && pos.z < car.stopLine && pos.z > car.stopLine - 16) isRed = (stateNS !== 'GREEN');
+        if (car.dir === 'S' && pos.z > car.stopLine && pos.z < car.stopLine + 16) isRed = (stateNS !== 'GREEN');
+        if (car.dir === 'E' && pos.x > car.stopLine && pos.x < car.stopLine + 16) isRed = (stateEW !== 'GREEN');
+        if (car.dir === 'W' && pos.x < car.stopLine && pos.x > car.stopLine - 16) isRed = (stateEW !== 'GREEN');
+
+        if (isRed) targetSpeed = 0;
+
+        cars.forEach((otherCar, otherIdx) => {
+          if (index === otherIdx || car.dir !== otherCar.dir) return;
+
+          let dist = 999;
+          if (car.dir === 'N' && otherCar.mesh.position.z > pos.z) dist = otherCar.mesh.position.z - pos.z;
+          if (car.dir === 'S' && otherCar.mesh.position.z < pos.z) dist = pos.z - otherCar.mesh.position.z;
+          if (car.dir === 'E' && otherCar.mesh.position.x < pos.x) dist = pos.x - otherCar.mesh.position.x;
+          if (car.dir === 'W' && otherCar.mesh.position.x > pos.x) dist = otherCar.mesh.position.x - pos.x;
+
+          if (dist > 0 && dist < SAFE_DISTANCE) {
+            targetSpeed = Math.min(targetSpeed, (dist / SAFE_DISTANCE) * otherCar.speed);
+          }
         });
 
-        // Live Clock GTA
-        setInterval(() => {
-            const now = new Date();
-            const hrs = String(now.getHours()).padStart(2, '0');
-            const mins = String(now.getMinutes()).padStart(2, '0');
-            document.getElementById('gtaClock').innerText = `${hrs}:${mins}`;
-        }, 1000);
+        car.speed += (targetSpeed - car.speed) * 0.1;
+        if (car.speed < 0.001) car.speed = 0;
 
-        startTrafficLoop();
-        animate();
-    </script>
+        if (car.dir === 'N') pos.z += car.speed;
+        if (car.dir === 'S') pos.z -= car.speed;
+        if (car.dir === 'E') pos.x -= car.speed;
+        if (car.dir === 'W') pos.x += car.speed;
+
+        if (Math.abs(pos.x) > 130 || Math.abs(pos.z) > 130) {
+          scene.remove(car.mesh);
+          cars.splice(index, 1);
+          document.getElementById('car-count').innerText = cars.length;
+        }
+      });
+    }
+
+    // --- ANIMATION LOOP ---
+    let autoCam = true;
+    let camAngle = 0;
+
+    document.getElementById('btn-cam').addEventListener('click', () => {
+      autoCam = !autoCam;
+      document.getElementById('btn-cam').innerText = autoCam ? 'KAMERA: DRONE AUTO' : 'KAMERA: BEBAS ORBIT';
+    });
+
+    function animate() {
+      requestAnimationFrame(animate);
+      updateCars();
+
+      if (autoCam) {
+        camAngle += 0.002;
+        camera.position.x = Math.sin(camAngle) * 80;
+        camera.position.z = Math.cos(camAngle) * 80;
+        camera.position.y = 55;
+        camera.lookAt(0, 0, 0);
+      } else {
+        controls.update();
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    animate();
+  </script>
 </body>
 </html>
